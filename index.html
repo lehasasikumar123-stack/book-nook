@@ -24,6 +24,7 @@
 
       <div class="nav-links">
         <a href="#discover">Discover</a>
+          <a href="#browse">Browse Books</a>
         <a href="#favorites">My Shelf ♡</a>
       </div>
     </nav>
@@ -131,7 +132,66 @@
 
     </section>
 
+<!-- ===================================
+     BROWSE BOOKS SECTION
+     =================================== -->
+
+<section id="browse" class="browse-section container">
+
+  <div class="section-heading">
+    <span class="eyebrow">EXPLORE THE SHELVES</span>
+
+    <h2>Browse by your favorite genre ♡</h2>
+
+    <p>
+      Not sure what you're looking for?
+      Explore our shelves and discover something new!
+    </p>
+  </div>
+
+  <!-- Genre category buttons -->
+  <div
+    id="browseCategories"
+    class="chip-container browse-categories">
+  </div>
+
+  <!-- Category heading -->
+  <div class="browse-heading">
+    <h3 id="browseTitle">Trending Books ♡</h3>
+    <p id="browseMessage" aria-live="polite"></p>
+  </div>
+
+  <!-- Loading animation -->
+  <div
+    id="browseLoading"
+    class="loading hidden"
+    role="status">
+
+    <div class="spinner"></div>
+    <p>Exploring the shelves for you... ♡</p>
+  </div>
+
+  <!-- Book cards will appear here -->
+  <div id="browseResults" class="book-grid"></div>
+
+  <!-- Load more books -->
+  <div class="load-more-container">
+    <button
+      id="loadMoreButton"
+      class="hero-button hidden"
+      type="button">
+
+      Load more books ♡
+    </button>
+  </div>
+
+</section>
+
     <!-- Favorites -->
+
+    
+
+
     <section id="favorites" class="favorites-section">
       <div class="container">
 
@@ -166,6 +226,53 @@
       </p>
     </div>
   </footer>
+
+  <!-- ===================================
+     BOOK DETAILS POPUP
+     =================================== -->
+
+<div
+  id="bookModal"
+  class="modal hidden"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="modalTitle">
+
+  <div class="modal-content">
+
+    <!-- Close popup button -->
+    <button
+      id="closeModal"
+      class="modal-close"
+      type="button"
+      aria-label="Close book details">
+
+      &times;
+    </button>
+
+    <!-- Detailed book information -->
+    <div id="modalBody"></div>
+
+    <!-- Similar books section -->
+    <div class="similar-section">
+
+      <h3>♡ More books like this</h3>
+
+      <p>
+        Loved this story's vibe?
+        Discover more books with similar themes!
+      </p>
+
+      <div
+        id="similarBooks"
+        class="similar-grid">
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
 
 </body>
 </html>

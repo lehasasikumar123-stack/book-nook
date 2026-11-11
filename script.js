@@ -106,7 +106,33 @@ const loadingElement = document.getElementById("loading");
 const favoritesContainer = document.getElementById("favoritesGrid");
 const emptyFavorites = document.getElementById("emptyFavorites");
 
+
+/* =========================================
+   VERSION 2 - BROWSE BOOKS ELEMENTS
+   ========================================= */
+
+const browseCategories = document.getElementById("browseCategories");
+const browseTitle = document.getElementById("browseTitle");
+const browseMessage = document.getElementById("browseMessage");
+const browseLoading = document.getElementById("browseLoading");
+const browseResults = document.getElementById("browseResults");
+const loadMoreButton = document.getElementById("loadMoreButton");
+
+// Book details popup elements
+const bookModal = document.getElementById("bookModal");
+const closeModal = document.getElementById("closeModal");
+const modalBody = document.getElementById("modalBody");
+const similarBooks = document.getElementById("similarBooks");
+
+
 // 3. APPLICATION STATE
+
+let browseMode = "trending";
+let currentBrowseSubject = "";
+let browseOffset = 0;
+let browseRequestId = 0;
+
+const BOOKS_PER_PAGE = 24;
 
 const selectedGenres = new Set();
 const selectedTropes = new Set();
@@ -397,6 +423,27 @@ function createBookCard(book) {
   const card = document.createElement("article");
   card.className = "book-card";
 
+
+card.classList.add("clickable");
+card.tabIndex = 0;
+card.setAttribute("role", "button");
+card.setAttribute("aria-label", `View details for ${book.title}`);
+
+card.addEventListener("click", (event) => {
+  if (event.target.closest("button, a")) return;
+  openBookDetails(book);
+});
+
+card.addEventListener("keydown", (event) => {
+  if (event.target !== card) return;
+
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    openBookDetails(book);
+  }
+});
+
+
   // Cover
   const coverWrapper = document.createElement("div");
   coverWrapper.className = "book-cover-wrapper";
@@ -560,3 +607,487 @@ function renderFavorites() {
 renderFavorites();
 
 console.log("The Book Nook is ready! ♡");
+
+
+/* =========================================
+   VERSION 2 - BROWSE GENRE BUTTONS
+   ========================================= */
+
+const browseGenres = [
+  { name: "♡ Romance", subject: "romance" },
+  { name: "✧ Fantasy", subject: "fantasy" },
+  { name: "♡ Mystery", subject: "mystery" },
+  { name: "✿ Thriller", subject: "thriller" },
+  { name: "♡ Horror", subject: "horror" },
+  { name: "✧ Science Fiction", subject: "science_fiction" },
+  { name: "♡ Historical Fiction", subject: "historical_fiction" },
+  { name: "✿ Young Adult", subject: "young_adult_fiction" },
+  { name: "♡ Classics", subject: "classics" }
+];
+
+function createBrowseCategories() {
+  browseGenres.forEach((genre) => {
+    const button = document.createElement("button");
+
+    button.type = "button";
+    button.className = "chip";
+    button.textContent = genre.name;
+
+
+button.addEventListener("click", () => {
+  loadBrowseGenre(genre.subject, genre.name);
+
+  browseCategories.querySelectorAll(".chip").forEach((chip) => {
+    chip.classList.remove("selected");
+    chip.setAttribute("aria-pressed", "false");
+  });
+
+  button.classList.add("selected");
+  button.setAttribute("aria-pressed", "true");
+});
+
+
+    browseCategories.appendChild(button);
+  });
+}
+
+createBrowseCategories();
+
+
+/* =========================================
+   VERSION 2 - LOAD BOOKS BY GENRE
+   ========================================= */
+
+async function loadBrowseGenre(subject, genreName) {
+
+  browseRequestId++;
+  browseMode = "genre";
+  currentBrowseSubject = subject;
+  browseOffset = 0;
+  loadMoreButton.classList.add("hidden");
+
+  browseTitle.textContent = `${genreName} Books ♡`;
+  browseMessage.textContent = "Finding books for you... ♡";
+
+  browseLoading.classList.remove("hidden");
+  browseResults.replaceChildren();
+
+  try {
+    const url =
+      `https://openlibrary.org/subjects/${subject}.json?limit=24`;
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error("Could not load books.");
+    }
+
+    const data = await response.json();
+
+
+    browseOffset = (data.works || []).length;
+    loadMoreButton.classList.toggle(
+      "hidden",
+      browseOffset < BOOKS_PER_PAGE
+    );
+
+
+    const books = (data.works || []).map((book) => ({
+      key: book.key,
+      title: book.title,
+      author: book.authors?.[0]?.name || "Unknown author",
+      year: book.first_publish_year || null,
+      coverId: book.cover_id || null,
+      subjects: (book.subject || []).slice(0, 8),
+      matches: 0
+    }));
+
+    if (books.length === 0) {
+      browseMessage.textContent =
+        "No books found in this category. Try another genre! ♡";
+    } else {
+      browseMessage.textContent =
+        `Explore ${books.length} books in this category! ♡`;
+
+      displayBooks(books, browseResults);
+    }
+
+  } catch (error) {
+    console.error("Browse error:", error);
+
+    browseMessage.textContent =
+      "Oops! We couldn't load these books. Please try again. ♡";
+
+  } finally {
+    browseLoading.classList.add("hidden");
+  }
+}
+
+
+/* =========================================
+   VERSION 2 - TRENDING BOOKS
+   ========================================= */
+
+async function loadTrendingBooks() {
+
+  browseRequestId++;
+  browseMode = "trending";
+  currentBrowseSubject = "";
+  browseOffset = 0;
+  loadMoreButton.classList.add("hidden");
+
+  browseTitle.textContent = "Trending Books ♡";
+  browseMessage.textContent = "Finding popular reads for you... ♡";
+
+  browseLoading.classList.remove("hidden");
+  browseResults.replaceChildren();
+
+  try {
+    const response = await fetch(
+      "https://openlibrary.org/trending/daily.json?limit=24"
+    );
+
+    if (!response.ok) {
+      throw new Error("Could not load trending books.");
+    }
+
+    const data = await response.json();
+
+    browseOffset = (data.works || []).length;
+    loadMoreButton.classList.toggle(
+      "hidden",
+      browseOffset < BOOKS_PER_PAGE
+    );
+
+
+    const books = (data.works || []).map((book) => ({
+      key: book.key,
+      title: book.title,
+      author: book.author_name?.[0] || "Unknown author",
+      year: book.first_publish_year || null,
+      coverId: book.cover_i || null,
+      subjects: (book.subject || []).slice(0, 8),
+      matches: 0
+    }));
+
+    browseMessage.textContent =
+      `Explore ${books.length} trending reads! ♡`;
+
+    displayBooks(books, browseResults);
+
+  } catch (error) {
+    console.error("Trending books error:", error);
+
+    browseMessage.textContent =
+      "Couldn't load trending books right now. Try browsing by genre! ♡";
+
+  } finally {
+    browseLoading.classList.add("hidden");
+  }
+}
+
+// Automatically show trending books when the page opens
+loadTrendingBooks();
+
+
+/* =========================================
+   VERSION 2 - BOOK DETAILS POPUP
+   ========================================= */
+
+async function openBookDetails(book) {
+  // Show the popup
+  bookModal.classList.remove("hidden");
+
+  // Display a loading message
+  modalBody.replaceChildren();
+
+  const loadingMessage = document.createElement("p");
+  loadingMessage.textContent = "Opening your next story... ♡";
+  modalBody.appendChild(loadingMessage);
+
+  // Clear previous similar books
+  similarBooks.replaceChildren();
+
+  try {
+    // Get the book's full details from Open Library
+    const response = await fetch(
+      `https://openlibrary.org${book.key}.json`
+    );
+
+    if (!response.ok) {
+      throw new Error("Could not load book details.");
+    }
+
+    const details = await response.json();
+
+    // Open Library descriptions can be text or objects
+    let description = details.description;
+
+    if (typeof description === "object" && description !== null) {
+      description = description.value;
+    }
+
+    if (!description) {
+      description =
+        "A full synopsis isn't available for this book yet. " +
+        "Visit Open Library to explore more about this story. ♡";
+    }
+
+    // Create the book details layout
+    const bookLayout = document.createElement("div");
+    bookLayout.className = "modal-book";
+
+    // Book cover
+    const cover = document.createElement("img");
+    cover.className = "modal-cover";
+    cover.alt = `Cover of ${book.title}`;
+
+    if (book.coverId) {
+      cover.src =
+        `https://covers.openlibrary.org/b/id/${book.coverId}-L.jpg`;
+    } else {
+      cover.style.display = "none";
+    }
+
+    // Book information
+    const info = document.createElement("div");
+    info.className = "modal-info";
+
+    const title = document.createElement("h2");
+    title.id = "modalTitle";
+    title.textContent = book.title;
+
+    const author = document.createElement("p");
+    author.textContent = `by ${book.author}`;
+
+    const year = document.createElement("p");
+    year.textContent = book.year
+      ? `First published: ${book.year}`
+      : "";
+
+    const synopsis = document.createElement("p");
+    synopsis.className = "modal-description";
+    synopsis.textContent = description;
+
+    // Link to Open Library
+    const link = document.createElement("a");
+    link.className = "book-link";
+    link.href = `https://openlibrary.org${book.key}`;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = "View on Open Library ↗";
+
+    info.append(title, author, year, synopsis, link);
+    bookLayout.append(cover, info);
+
+    modalBody.replaceChildren(bookLayout);
+
+
+    loadSimilarBooks(book, details);
+
+
+  } catch (error) {
+    console.error("Book details error:", error);
+
+    modalBody.textContent =
+      "Sorry, we couldn't load this book's details. " +
+      "Please try again. ♡";
+  }
+}
+
+// Close popup using the X button
+closeModal.addEventListener("click", () => {
+  bookModal.classList.add("hidden");
+});
+
+// Close popup by clicking outside the content
+bookModal.addEventListener("click", (event) => {
+  if (event.target === bookModal) {
+    bookModal.classList.add("hidden");
+  }
+});
+
+// Close popup by pressing Escape
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    bookModal.classList.add("hidden");
+  }
+});
+
+
+/* =========================================
+   VERSION 2 - SIMILAR BOOK RECOMMENDATIONS
+   ========================================= */
+
+async function loadSimilarBooks(book, details) {
+  similarBooks.replaceChildren();
+
+  const message = document.createElement("p");
+  message.textContent = "Finding similar stories... ♡";
+  similarBooks.appendChild(message);
+
+  try {
+    // Use the book's subjects to find similar stories
+    const subjects = Array.isArray(details.subjects)
+      ? details.subjects
+      : book.subjects || [];
+
+    // Prefer broad genres rather than very specific subjects
+    const genreNames = [
+      "romance",
+      "fantasy",
+      "mystery",
+      "thriller",
+      "horror",
+      "science fiction",
+      "historical fiction",
+      "young adult",
+      "fiction"
+    ];
+
+    const subject = subjects.find((item) =>
+      genreNames.includes(item.toLowerCase())
+    );
+
+    const searchTerm = subject || subjects[0] || "fiction";
+
+    const params = new URLSearchParams({
+      subject: searchTerm,
+      limit: "12",
+      fields: "key,title,author_name,first_publish_year,cover_i,subject"
+    });
+
+    const response = await fetch(
+      `https://openlibrary.org/search.json?${params}`
+    );
+
+    if (!response.ok) {
+      throw new Error("Could not load similar books.");
+    }
+
+    const data = await response.json();
+
+    const books = (data.docs || [])
+      .filter((item) => item.key !== book.key && item.title)
+      .slice(0, 6)
+      .map((item) => ({
+        key: item.key,
+        title: item.title,
+        author: item.author_name?.[0] || "Unknown author",
+        year: item.first_publish_year || null,
+        coverId: item.cover_i || null,
+        subjects: (item.subject || []).slice(0, 8),
+        matches: 0
+      }));
+
+    similarBooks.replaceChildren();
+
+    if (books.length === 0) {
+      similarBooks.textContent =
+        "No similar books found this time. ♡";
+      return;
+    }
+
+    displayBooks(books, similarBooks);
+
+  } catch (error) {
+    console.error("Similar books error:", error);
+
+    similarBooks.textContent =
+      "Couldn't load similar books right now. ♡";
+  }
+}
+
+
+/* =========================================
+   VERSION 2 - LOAD MORE BOOKS
+   ========================================= */
+
+
+
+async function loadMoreBrowseBooks() {
+  const requestId = ++browseRequestId;
+
+  loadMoreButton.disabled = true;
+  loadMoreButton.textContent = "Loading books... ♡";
+  browseLoading.classList.remove("hidden");
+
+  try {
+    let url;
+
+    if (browseMode === "genre") {
+      url = `https://openlibrary.org/subjects/${currentBrowseSubject}.json?limit=${BOOKS_PER_PAGE}&offset=${browseOffset}`;
+    } else {
+      url = `https://openlibrary.org/trending/daily.json?limit=${BOOKS_PER_PAGE}&offset=${browseOffset}`;
+    }
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error("Could not load more books.");
+    }
+
+    const data = await response.json();
+
+    if (requestId !== browseRequestId) return;
+
+    const works = data.works || [];
+
+    const books = works
+      .filter((book) => book.key && book.title)
+      .map((book) => ({
+        key: book.key,
+        title: book.title,
+        author: browseMode === "genre"
+          ? book.authors?.[0]?.name || "Unknown author"
+          : book.author_name?.[0] || "Unknown author",
+        year: book.first_publish_year || null,
+        coverId: browseMode === "genre"
+          ? book.cover_id || null
+          : book.cover_i || null,
+        subjects: (book.subject || []).slice(0, 8),
+        matches: 0
+      }));
+
+    // Keep existing books and append the new ones
+    const existingKeys = new Set(
+      [...browseResults.querySelectorAll("[data-book-key]")]
+        .map((card) => card.dataset.bookKey)
+    );
+
+    books.forEach((book) => {
+      if (existingKeys.has(book.key)) return;
+
+      const card = createBookCard(book);
+      card.dataset.bookKey = book.key;
+
+      browseResults.appendChild(card);
+      existingKeys.add(book.key);
+    });
+
+    browseOffset += works.length;
+
+    // Hide the button when there are no more results
+    loadMoreButton.classList.toggle(
+      "hidden",
+      works.length < BOOKS_PER_PAGE
+    );
+
+    browseMessage.textContent =
+      `Showing ${browseResults.children.length} books ♡`;
+
+  } catch (error) {
+    console.error("Load more error:", error);
+    browseMessage.textContent =
+      "Couldn't load more books. Please try again. ♡";
+  } finally {
+    if (requestId === browseRequestId) {
+      browseLoading.classList.add("hidden");
+      loadMoreButton.disabled = false;
+      loadMoreButton.textContent = "Load more books ♡";
+    }
+  }
+}
+
+loadMoreButton.addEventListener("click", loadMoreBrowseBooks);
+
