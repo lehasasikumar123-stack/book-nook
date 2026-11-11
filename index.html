@@ -1,0 +1,171 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>The Book Nook | Find Your Next Read</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+</head>
+
+<body>
+
+  <!-- Navigation -->
+  <header class="site-header">
+    <nav class="navbar container">
+      <a href="#" class="logo">♡ the book nook</a>
+
+      <div class="nav-links">
+        <a href="#discover">Discover</a>
+        <a href="#favorites">My Shelf ♡</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="container hero-content">
+        <span class="eyebrow">✦ A LITTLE CORNER FOR BOOK LOVERS ✦</span>
+
+        <h1>Find your next<br>
+          <em>fictional obsession.</em>
+        </h1>
+
+        <p>
+          Craving a slow burn? A magical world?
+          An enemies-to-lovers romance?
+          Tell us your dream story and we'll help you
+          find your next favorite read.
+        </p>
+
+        <a href="#discover" class="hero-button">
+          Find my next read ♡
+        </a>
+
+        <div class="hero-decoration">✿ &nbsp; ♡ &nbsp; ✧ &nbsp; ✿</div>
+      </div>
+    </section>
+
+    <!-- Book Search -->
+    <section id="discover" class="discover-section container">
+
+      <div class="section-heading">
+        <span class="eyebrow">YOUR READING MOOD</span>
+        <h2>What are we reading today?</h2>
+        <p>A few little clues are all we need.</p>
+      </div>
+
+      <form id="searchForm" class="search-panel">
+
+        <!-- Description -->
+        <div class="form-group">
+          <label for="description">
+            ✎ Describe your dream book
+          </label>
+
+          <textarea
+            id="description"
+            rows="4"
+            placeholder="I want a fantasy romance with a slow burn, enemies to lovers, and a morally gray love interest..."
+          ></textarea>
+
+          <span class="helper-text">
+            Describe the plot, vibe, setting, or anything you're craving.
+          </span>
+        </div>
+
+        <!-- Genres -->
+        <div class="form-group">
+          <h3>♡ Pick your genres</h3>
+          <p class="field-description">
+            Choose as many as you'd like!
+          </p>
+
+          <div id="genreOptions" class="chip-container"></div>
+        </div>
+
+        <!-- Tropes -->
+        <div class="form-group">
+          <h3>✧ Choose your favorite tropes</h3>
+          <p class="field-description">
+            The little things that make a story irresistible.
+          </p>
+
+          <div id="tropeOptions" class="chip-container"></div>
+        </div>
+
+        <button type="submit" id="searchButton" class="search-button">
+          Find my next read ♡
+        </button>
+
+      </form>
+    </section>
+
+    <!-- Recommendations -->
+    <section id="recommendations" class="results-section container">
+
+      <div class="section-heading">
+        <span class="eyebrow">CURATED FOR YOUR MOOD</span>
+        <h2>Your next chapter awaits...</h2>
+        <p id="resultsMessage">
+          Tell us what you love and your recommendations
+          will appear here.
+        </p>
+      </div>
+
+      <div id="loading" class="loading hidden" role="status">
+        <div class="spinner"></div>
+        <p>Searching the shelves for you... ♡</p>
+      </div>
+
+      <div id="bookResults" class="book-grid"></div>
+
+    </section>
+
+    <!-- Favorites -->
+    <section id="favorites" class="favorites-section">
+      <div class="container">
+
+        <div class="section-heading">
+          <span class="eyebrow">YOUR LITTLE COLLECTION</span>
+          <h2>My bookshelf ♡</h2>
+          <p>All the stories that caught your eye.</p>
+        </div>
+
+        <div id="favoritesGrid" class="book-grid"></div>
+
+        <p id="emptyFavorites" class="empty-message">
+          Your shelf is looking a little lonely.
+          Save some books to fill it up! ♡
+        </p>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <p class="footer-logo">♡ the book nook</p>
+      <p>Made with love for stories and the people who adore them.</p>
+      <p class="footer-credit">
+        Book data provided by
+        <a href="https://openlibrary.org/" target="_blank" rel="noopener noreferrer">
+          Open Library
+        </a>
+      </p>
+    </div>
+  </footer>
+
+</body>
+</html>
