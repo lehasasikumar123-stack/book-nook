@@ -138,6 +138,13 @@ const selectedGenres = new Set();
 const selectedTropes = new Set();
 
 let currentBooks = [];
+
+let visibleSearchBooks = 18;
+const SEARCH_BOOKS_PER_PAGE = 18;
+
+const searchLoadMoreButton =
+  document.getElementById("searchLoadMoreButton");
+
 let favorites = loadFavorites();
 
 // 4. CREATE SELECTION BUTTONS
@@ -239,14 +246,15 @@ function buildSearchQuery(description, chosenGenres, chosenTropes) {
 async function fetchBooks(query) {
   const params = new URLSearchParams({
     q: query,
-    limit: "40",
+    limit: "100",
     fields: [
       "key",
       "title",
       "author_name",
       "first_publish_year",
       "cover_i",
-      "subject"
+      "subject",
+      "edition_count"
     ].join(",")
   });
 
@@ -339,14 +347,28 @@ function rankBooks(books, description, chosenGenres, chosenTropes) {
         year: book.first_publish_year || null,
         coverId: book.cover_i || null,
         subjects: (book.subject || []).slice(0, 8),
+        editionCount: book.edition_count || 0,
         score,
         matches
       };
     });
 
-  ranked.sort((a, b) => b.score - a.score);
 
-  return ranked.slice(0, 18);
+// Rank by relevance first, then use edition count
+// to prioritize more widely published books.
+
+ranked.sort((a, b) => {
+  // Keep books with stronger matches near the top
+  if (b.score !== a.score) {
+    return b.score - a.score;
+  }
+
+  // When relevance is equal, show the book
+  // with more recorded editions first
+  return b.editionCount - a.editionCount;
+});
+
+  return ranked;
 }
 
 // 10. HANDLE THE SEARCH FORM
@@ -400,7 +422,18 @@ searchForm.addEventListener("submit", async (event) => {
         `Found ${currentBooks.length} possible reads for you! ` +
         "Matches are based on available book subjects and keywords.";
 
-      displayBooks(currentBooks, resultsContainer);
+
+visibleSearchBooks = SEARCH_BOOKS_PER_PAGE;
+
+displayBooks(
+  currentBooks.slice(0, visibleSearchBooks),
+  resultsContainer
+);
+
+searchLoadMoreButton.classList.toggle(
+  "hidden",
+  currentBooks.length <= visibleSearchBooks
+);
     }
 
   } catch (error) {
@@ -421,7 +454,9 @@ searchForm.addEventListener("submit", async (event) => {
 
 function createBookCard(book) {
   const card = document.createElement("article");
-  card.className = "book-card";
+  card.className = "book-card clickable";
+card.dataset.bookKey = book.key;
+
 
 
 card.classList.add("clickable");
@@ -452,7 +487,7 @@ card.addEventListener("keydown", (event) => {
     const image = document.createElement("img");
     image.className = "book-cover";
     image.src =
-      `https://covers.openlibrary.org/b/id/${book.coverId}-M.jpg`;
+      `https://covers.openlibrary.org/b/id/${book.coverId}-L.jpg`;
     image.alt = `Cover of ${book.title}`;
     image.loading = "lazy";
 
@@ -589,7 +624,9 @@ function toggleFavorite(book) {
   saveFavorites();
 
   // Update both sections so heart buttons stay synchronized.
-  displayBooks(currentBooks, resultsContainer);
+  
+displayBooks(currentBooks.slice(0, visibleSearchBooks), resultsContainer);
+
   renderFavorites();
 }
 
@@ -1090,4 +1127,263 @@ async function loadMoreBrowseBooks() {
 }
 
 loadMoreButton.addEventListener("click", loadMoreBrowseBooks);
+
+
+/* =========================================
+   VERSION 3 - BOOKTOK CATEGORY BUTTONS
+   ========================================= */
+
+// Get the BookTok elements from our HTML
+const booktokCategories = document.getElementById("booktokCategories");
+const booktokResults = document.getElementById("booktokResults");
+const booktokLoading = document.getElementById("booktokLoading");
+
+// Categories visitors can choose
+const booktokGenres = [
+  { name: "♡ All Favorites", category: "all" },
+  { name: "✧ Romantasy", category: "romantasy" },
+  { name: "♡ Romance", category: "romance" },
+  { name: "✿ Fantasy", category: "fantasy" },
+  { name: "✧ Mystery & Thriller", category: "mystery" }
+];
+
+// Create the category buttons
+function createBooktokCategories() {
+  booktokGenres.forEach((genre) => {
+    const button = document.createElement("button");
+
+    button.type = "button";
+    button.className = "chip";
+    button.textContent = genre.name;
+    button.setAttribute("aria-pressed", "false");
+
+    button.addEventListener("click", () => {
+      // Remove selection from other buttons
+      booktokCategories.querySelectorAll(".chip").forEach((chip) => {
+        chip.classList.remove("selected");
+        chip.setAttribute("aria-pressed", "false");
+      });
+
+      // Highlight the selected button
+      button.classList.add("selected");
+      button.setAttribute("aria-pressed", "true");
+
+      // We'll connect this to book recommendations next!
+    displayBooktokBooks(genre.category);    });
+
+    booktokCategories.appendChild(button);
+  });
+
+  // Select All Favorites when the page first loads
+  const firstButton = booktokCategories.querySelector(".chip");
+
+  if (firstButton) {
+    firstButton.classList.add("selected");
+    firstButton.setAttribute("aria-pressed", "true");
+  }
+}
+
+createBooktokCategories();
+
+
+/* =========================================
+   VERSION 3 - BOOKTOK BOOK COLLECTION
+   ========================================= */
+
+// Curated BookTok favorites.
+// Each book belongs to one or more categories.
+
+const booktokBooks = [
+  {
+    title: "Fourth Wing",
+    author: "Rebecca Yarros",
+    categories: ["romantasy", "fantasy"]
+  },
+  {
+    title: "A Court of Thorns and Roses",
+    author: "Sarah J. Maas",
+    categories: ["romantasy", "fantasy"]
+  },
+  {
+    title: "Powerless",
+    author: "Lauren Roberts",
+    categories: ["romantasy", "fantasy"]
+  },
+  {
+    title: "Divine Rivals",
+    author: "Rebecca Ross",
+    categories: ["romantasy", "fantasy"]
+  },
+  {
+    title: "The Serpent and the Wings of Night",
+    author: "Carissa Broadbent",
+    categories: ["romantasy", "fantasy"]
+  },
+  {
+    title: "The Love Hypothesis",
+    author: "Ali Hazelwood",
+    categories: ["romance"]
+  },
+  {
+    title: "Icebreaker",
+    author: "Hannah Grace",
+    categories: ["romance"]
+  },
+  {
+    title: "Better Than the Movies",
+    author: "Lynn Painter",
+    categories: ["romance"]
+  },
+  {
+    title: "It Ends with Us",
+    author: "Colleen Hoover",
+    categories: ["romance"]
+  },
+  {
+    title: "The Seven Husbands of Evelyn Hugo",
+    author: "Taylor Jenkins Reid",
+    categories: ["romance"]
+  },
+  {
+    title: "Six of Crows",
+    author: "Leigh Bardugo",
+    categories: ["fantasy"]
+  },
+  {
+    title: "The Cruel Prince",
+    author: "Holly Black",
+    categories: ["fantasy", "romantasy"]
+  },
+  {
+    title: "The Housemaid",
+    author: "Freida McFadden",
+    categories: ["mystery"]
+  },
+  {
+    title: "A Good Girl's Guide to Murder",
+    author: "Holly Jackson",
+    categories: ["mystery"]
+  },
+  {
+    title: "Verity",
+    author: "Colleen Hoover",
+    categories: ["mystery"]
+  },
+  {
+    title: "The Silent Patient",
+    author: "Alex Michaelides",
+    categories: ["mystery"]
+  }
+];
+
+
+/* =========================================
+   VERSION 3 - DISPLAY BOOKTOK BOOKS
+   ========================================= */
+
+// Store the books after Open Library finds them
+let loadedBooktokBooks = [];
+
+// Find one book using its title and author
+async function fetchBooktokBook(book) {
+  const params = new URLSearchParams({
+    title: book.title,
+    author: book.author,
+    limit: "5",
+    fields: "key,title,author_name,first_publish_year,cover_i,subject"
+  });
+
+  const response = await fetch(
+    `https://openlibrary.org/search.json?${params}`
+  );
+
+  if (!response.ok) {
+    throw new Error(`Could not find ${book.title}`);
+  }
+
+  const data = await response.json();
+
+  // Prefer an exact title and author match
+  const match = (data.docs || []).find((item) => {
+    const sameTitle =
+      normalizeText(item.title) === normalizeText(book.title);
+
+    const sameAuthor = (item.author_name || []).some(
+      (name) =>
+        normalizeText(name).includes(normalizeText(book.author))
+    );
+
+    return sameTitle && sameAuthor;
+  });
+
+  if (!match) return null;
+
+  return {
+    key: match.key,
+    title: match.title,
+    author: match.author_name?.[0] || book.author,
+    year: match.first_publish_year || null,
+    coverId: match.cover_i || null,
+    subjects: (match.subject || []).slice(0, 8),
+    matches: 0,
+    categories: book.categories
+  };
+}
+
+// Display the selected BookTok category
+function displayBooktokBooks(category = "all") {
+  const books = category === "all"
+    ? loadedBooktokBooks
+    : loadedBooktokBooks.filter(
+        (book) => book.categories.includes(category)
+      );
+
+  displayBooks(books, booktokResults);
+}
+
+// Load our curated books when the website opens
+async function loadBooktokBooks() {
+  booktokLoading.classList.remove("hidden");
+
+  try {
+    const results = await Promise.allSettled(
+      booktokBooks.map((book) => fetchBooktokBook(book))
+    );
+
+    loadedBooktokBooks = results
+      .filter(
+        (result) =>
+          result.status === "fulfilled" && result.value
+      )
+      .map((result) => result.value);
+
+    displayBooktokBooks();
+
+  } catch (error) {
+    console.error("BookTok loading error:", error);
+    booktokResults.textContent =
+      "Couldn't load BookTok favorites right now. ♡";
+
+  } finally {
+    booktokLoading.classList.add("hidden");
+  }
+}
+
+loadBooktokBooks();
+
+
+// Load more personalized search recommendations
+searchLoadMoreButton.addEventListener("click", () => {
+  visibleSearchBooks += SEARCH_BOOKS_PER_PAGE;
+
+  displayBooks(
+    currentBooks.slice(0, visibleSearchBooks),
+    resultsContainer
+  );
+
+  searchLoadMoreButton.classList.toggle(
+    "hidden",
+    visibleSearchBooks >= currentBooks.length
+  );
+});
 
